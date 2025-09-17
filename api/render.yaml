@@ -1,9 +1,11 @@
 
 services:
   - type: web
-    name: stackoverflow-api
+    name: projetstackoverflowtags1
     env: python
     plan: free
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn app:app --host=0.0.0.0 --port=10000"
-    autoDeploy: true
+    envVars:
+      - key: HF_HUB_ENABLE_HF_TRANSFER
+        value: "1"
