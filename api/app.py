@@ -1,41 +1,27 @@
-
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from pydantic import BaseModel
-from interface import multilabel_pipeline
 from huggingface_hub import hf_hub_download
-
-import os
 import joblib
+import os
 
-# Classe de requête
-class Question(BaseModel):
-    text: str
+# Téléchargement du modèle depuis Hugging Face
+MODEL_PATH = hf_hub_download(
+    repo_id="OmarFD/stackoverflow-tagger-model",
+    filename="model.pkl",
+    cache_dir="model",
+    local_dir="model"
+)
 
-# Création de l'application FastAPI
+# Chargement du modèle
+model = joblib.load(MODEL_PATH)
+
+# API FastAPI
 app = FastAPI()
 
-# Téléchargement automatique du modèle
-if not os.path.exists("model"):
-    os.makedirs("model")
-
-MODEL_PATH = hf_hub_download(repo_id="omarfdale/stackoverflow-model",
-                             filename="model.pkl",
-                             cache_dir="model",
-                             local_dir="model",
-                             local_dir_use_symlinks=False)
-
-# Chargement du modèle et des classes
-model, mlb, vectorizer = joblib.load(MODEL_PATH)
-
-@app.get("/")
-def read_root():
-    return {"message": "Bienvenue sur l'API de suggestion de tags StackOverflow."}
+class InputData(BaseModel):
+    text: str
 
 @app.post("/predict")
-def predict_tags(question: Question):
-    try:
-        text = question.text
-        prediction = multilabel_pipeline(text, model, mlb, vectorizer)
-        return {"tags": prediction}
-    except Exception as e:
-        return {"error": str(e)}
+def predict(data: InputData):
+    prediction = model.predict([data.text])
+    return {"tags": prediction[0]}
