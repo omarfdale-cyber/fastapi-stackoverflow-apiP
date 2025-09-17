@@ -1,43 +1,32 @@
-
-import os
-import requests
-import joblib
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
+import joblib
+from huggingface_hub import hf_hub_download
+from interface import multilabel_pipeline
 
-# Téléchargement automatique du modèle 
-MODEL_PATH = "model/model.pkl"
-MODEL_URL = "https://huggingface.co/OmarFD/stackoverflow-tagger-model/resolve/main/model.pkl"
+# Téléchargement du modèle depuis Hugging Face
+model_path = hf_hub_download(repo_id="omarfdale/projetstackoverflow", filename="model.pkl")
+model = joblib.load(model_path)
 
-os.makedirs("model", exist_ok=True)
+# Chargement de l'objet multi-label pipeline
+mlb = model.named_steps['clf'].classes_
 
-if not os.path.exists(MODEL_PATH):
-    print("Téléchargement du modèle depuis Hugging Face...")
-    response = requests.get(MODEL_URL)
-    if response.status_code != 200:
-        raise Exception("Erreur lors du téléchargement du modèle")
-    with open(MODEL_PATH, "wb") as f:
-        f.write(response.content)
-    print("Modèle téléchargé avec succès.")
-
-# Chargement du modèle
-model = joblib.load(MODEL_PATH)
-print("Modèle chargé avec succès.")
-
-# API
 app = FastAPI()
 
-class InputText(BaseModel):
+class InputData(BaseModel):
     text: str
     threshold: float = 0.3
 
+@app.get("/")
+def home():
+    return {"message": "API de suggestion de tags StackOverflow – Projet Omar"}
+
 @app.post("/predict")
-def predict_tags(input_data: InputText):
+def predict_tags(data: InputData):
     try:
-        X = [input_data.text]
-        probs = model.predict_proba(X)[0]
-        tags = model.classes_
-        selected = [tag for tag, prob in zip(tags, probs) if prob >= input_data.threshold]
-        return {"predicted_tags": selected}
+        text = data.text
+        proba = model.predict_proba([text])[0]
+        tags = (proba > data.threshold)
+        return {"tags": list(mlb[tags])}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"error": str(e)}
