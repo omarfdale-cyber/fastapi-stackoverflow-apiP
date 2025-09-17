@@ -1,7 +1,7 @@
+
 fastapi
 uvicorn
-transformers
+scikit-learn==1.5.1
 joblib
-huggingface_hub
-scikit-learn
+requests
 pydantic

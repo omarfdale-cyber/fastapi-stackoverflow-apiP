@@ -1,29 +1,35 @@
-from fastapi import FastAPI
+
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import os
 import joblib
-import urllib.request
+import os
+import requests
+
+MODEL_URL = "https://huggingface.co/OmarFD/stackoverflow-tagger-model/resolve/main/model.pkl"
+MODEL_PATH = "model.pkl"
+
+def download_model():
+    if not os.path.exists(MODEL_PATH):
+        print("Downloading model...")
+        response = requests.get(MODEL_URL)
+        if response.status_code == 200:
+            with open(MODEL_PATH, "wb") as f:
+                f.write(response.content)
+        else:
+            raise Exception("Failed to download model")
+
+download_model()
+model = joblib.load(MODEL_PATH)
 
 app = FastAPI()
-
-# Si model.pkl n'existe pas, le télécharger depuis Hugging Face
-MODEL_URL = "https://huggingface.co/OmarFD/stackoverflow-tagger-model/resolve/main/model.pkl"
-MODEL_LOCAL_PATH = "model.pkl"
-
-if not os.path.exists(MODEL_LOCAL_PATH):
-    print("Téléchargement du modèle depuis Hugging Face…")
-    urllib.request.urlretrieve(MODEL_URL, MODEL_LOCAL_PATH)
-    print("Modèle téléchargé.")
-
-# Chargement du modèle
-model = joblib.load(MODEL_LOCAL_PATH)
 
 class InputText(BaseModel):
     text: str
 
 @app.post("/predict")
-def predict_tags(input: InputText):
-    text = input.text
-    y_pred = model.predict([text])
-    predicted_tags = y_pred[0].tolist() if hasattr(y_pred[0], "tolist") else list(y_pred[0])
-    return {"predicted_tags": predicted_tags}
+def predict_tags(input_text: InputText):
+    try:
+        tags = model.predict([input_text.text])
+        return {"predicted_tags": tags[0]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
