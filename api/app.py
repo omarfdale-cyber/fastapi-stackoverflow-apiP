@@ -1,15 +1,14 @@
-
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
-from interface import load_model, predict_tags
-
-class InputText(BaseModel):
-    text: str
+from api.interface import load_model
 
 app = FastAPI()
 model = load_model()
 
+class InputText(BaseModel):
+    text: str
+
 @app.post("/predict")
-def predict(input: InputText):
-    tags = predict_tags(model, input.text)
-    return tags
+async def predict(input: InputText):
+    prediction = model.predict([input.text])
+    return prediction.tolist()
