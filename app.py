@@ -1,37 +1,55 @@
+from fastapi import FastAPI
+from pydantic import BaseModel
 import joblib
 import requests
 import os
-from fastapi import FastAPI
-from pydantic import BaseModel
 
-# URL correcte du modèle sur Hugging Face
+# ============================
+# Config
+# ============================
 MODEL_URL = "https://huggingface.co/OmarFD/stackoverflow-tagger-model/resolve/main/model.pkl"
 MODEL_PATH = "model.pkl"
 
-# Télécharger le modèle si nécessaire
+# Liste des tags utilisés à l'entraînement
+TAGS = [
+    "python", "pandas", "numpy", "scikit-learn", "fastapi",
+    "sql", "django", "regex", "api", "nlp"
+]
+
+# ============================
+# Téléchargement du modèle
+# ============================
 if not os.path.exists(MODEL_PATH):
     print(f"Téléchargement du modèle depuis {MODEL_URL}...")
-    response = requests.get(MODEL_URL)
-    if response.status_code == 200:
+    r = requests.get(MODEL_URL)
+    if r.status_code == 200:
         with open(MODEL_PATH, "wb") as f:
-            f.write(response.content)
+            f.write(r.content)
+        print(" Modèle téléchargé et sauvegardé.")
     else:
         raise RuntimeError(f"Impossible de télécharger le modèle depuis {MODEL_URL}")
 
 # Charger le modèle
 model = joblib.load(MODEL_PATH)
 
-# Créer l'API
-app = FastAPI(title="StackOverflow Tags Prediction API")
+# ============================
+# FastAPI
+# ============================
+app = FastAPI(title="StackOverflow Tags API")
 
-class TextInput(BaseModel):
+class Item(BaseModel):
     text: str
 
 @app.get("/")
 def read_root():
-    return {"message": "Bienvenue sur l’API de prédiction de tags StackOverflow 🚀"}
+    return {"message": "Bienvenue dans l'API de suggestion de tags StackOverflow 🚀"}
 
 @app.post("/predict")
-def predict(input_data: TextInput):
-    prediction = model.predict([input_data.text])
-    return {"prediction": prediction.tolist()}
+def predict(item: Item):
+    # Prédiction brute (vecteur de 0/1)
+    prediction = model.predict([item.text])[0]
+
+    # Conversion en noms de tags
+    tags_pred = [TAGS[i] for i, val in enumerate(prediction) if val == 1]
+
+    return {"prediction": tags_pred}
