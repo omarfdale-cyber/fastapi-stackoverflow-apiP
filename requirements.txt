@@ -1,7 +1,8 @@
 fastapi
 uvicorn
-scikit-learn
+scikit-learn==1.5.1
 pandas
+numpy
 joblib
 requests
 huggingface_hub
