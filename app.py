@@ -6,7 +6,7 @@ import numpy as np
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-MODEL_URL = "https://huggingface.co/OmarFD/stackoverflow-tagger-model/resolve/main/model.pkl"
+MODEL_URL = "https://huggingface.co/OmarFD/stackoverflow-tagger-modelL/resolve/main/model.pkl"
 MODEL_PATH = "model.pkl"
 
 # --------- Download model if missing ----------
