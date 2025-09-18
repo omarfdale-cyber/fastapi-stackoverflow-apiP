@@ -1,55 +1,63 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+fimport os
 import joblib
 import requests
-import os
+import numpy as np
+from fastapi import FastAPI
+from pydantic import BaseModel
 
-# ============================
-# Config
-# ============================
+# ===============================
+# Configuration
+# ===============================
 MODEL_URL = "https://huggingface.co/OmarFD/stackoverflow-tagger-model/resolve/main/model.pkl"
 MODEL_PATH = "model.pkl"
 
-# Liste des tags utilisés à l'entraînement
-TAGS = [
-    "python", "pandas", "numpy", "scikit-learn", "fastapi",
-    "sql", "django", "regex", "api", "nlp"
-]
-
-# ============================
+# ===============================
 # Téléchargement du modèle
-# ============================
+# ===============================
 if not os.path.exists(MODEL_PATH):
     print(f"Téléchargement du modèle depuis {MODEL_URL}...")
-    r = requests.get(MODEL_URL)
-    if r.status_code == 200:
+    response = requests.get(MODEL_URL)
+    if response.status_code == 200:
         with open(MODEL_PATH, "wb") as f:
-            f.write(r.content)
-        print(" Modèle téléchargé et sauvegardé.")
+            f.write(response.content)
+        print("✅ Modèle téléchargé avec succès.")
     else:
-        raise RuntimeError(f"Impossible de télécharger le modèle depuis {MODEL_URL}")
+        raise RuntimeError(f"❌ Impossible de télécharger le modèle depuis {MODEL_URL}")
 
-# Charger le modèle
+# ===============================
+# Chargement du modèle
+# ===============================
+print("Chargement du modèle...")
 model = joblib.load(MODEL_PATH)
+print("✅ Modèle chargé avec succès.")
 
-# ============================
-# FastAPI
-# ============================
-app = FastAPI(title="StackOverflow Tags API")
+# ===============================
+# API FastAPI
+# ===============================
+app = FastAPI(title="StackOverflow Tags Predictor")
 
-class Item(BaseModel):
+class Query(BaseModel):
     text: str
 
 @app.get("/")
 def read_root():
-    return {"message": "Bienvenue dans l'API de suggestion de tags StackOverflow 🚀"}
+    return {"message": "Bienvenue sur l'API de prédiction des tags StackOverflow 🚀"}
 
 @app.post("/predict")
-def predict(item: Item):
-    # Prédiction brute (vecteur de 0/1)
-    prediction = model.predict([item.text])[0]
+def predict(query: Query):
+    text = query.text
 
-    # Conversion en noms de tags
-    tags_pred = [TAGS[i] for i, val in enumerate(prediction) if val == 1]
+    try:
+        # Prédiction brute
+        prediction = model.predict([text])[0]
 
-    return {"prediction": tags_pred}
+        # Conversion en format JSON-compatible
+        if isinstance(prediction, (np.ndarray, list, tuple)):
+            prediction = [str(p) for p in prediction]
+        else:
+            prediction = str(prediction)
+
+        return {"prediction": prediction}
+
+    except Exception as e:
+        return {"error": str(e)}
