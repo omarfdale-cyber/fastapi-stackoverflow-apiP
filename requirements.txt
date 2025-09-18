@@ -1,8 +1,8 @@
-fastapi
-uvicorn
+fastapi==0.116.2
+uvicorn==0.35.0
 scikit-learn==1.5.1
-pandas
-numpy
-joblib
-requests
-huggingface_hub
+pandas==2.3.2
+numpy==1.26.4
+joblib==1.4.2
+requests==2.32.3
+huggingface_hub==0.25.2
