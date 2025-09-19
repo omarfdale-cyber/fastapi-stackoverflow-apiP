@@ -1,8 +1,13 @@
 services:
   - type: web
-    name: stackapi-fastapi1
+    name: stackoverflow-tagger
     env: python
-    plan: free
-    branch: main
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "python -m uvicorn app:app --host=0.0.0.0 --port=10000"
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host=0.0.0.0 --port=10000
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: MODEL_PATH
+        value: "model/model.pkl"
+      - key: THRESHOLD
+        value: "0.5"
